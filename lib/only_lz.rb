@@ -3,6 +3,7 @@
 module ::OnlyLz
   PLUGIN_NAME = "discourse-only-lz"
   FILTER_NAME = "only_lz"
+  FILTER_ALIASES = [FILTER_NAME, "only-lz", "onlylz"].freeze
 
   module Fields
     ANON_IDENTITY_ID = "anon_identity_id"

@@ -2,16 +2,19 @@ import { withPluginApi } from "discourse/lib/plugin-api";
 
 const FILTER_NAME = "only_lz";
 const STORAGE_PREFIX = "only_lz.topic.v1.";
-const TOPIC_PATH_REGEX = /^\/t\/[^/]+\/(\d+)(?:\/|$)/;
+const TOPIC_PATH_REGEXES = [/^\/t\/[^/]+\/(\d+)(?:\/|$)/, /^\/t\/(\d+)(?:\/|$)/];
 
 function extractTopicId(pathname) {
-  const match = pathname.match(TOPIC_PATH_REGEX);
-  if (!match) {
-    return null;
+  for (const regex of TOPIC_PATH_REGEXES) {
+    const match = pathname.match(regex);
+    if (match) {
+      const topicId = Number.parseInt(match[1], 10);
+      if (Number.isFinite(topicId)) {
+        return topicId;
+      }
+    }
   }
-
-  const topicId = Number.parseInt(match[1], 10);
-  return Number.isFinite(topicId) ? topicId : null;
+  return null;
 }
 
 function storageKeyFor(topicId) {
@@ -54,7 +57,8 @@ export default {
         let rememberedValue = null;
         try {
           rememberedValue = window.localStorage.getItem(storageKeyFor(topicId));
-        } catch {
+        } catch (error) {
+          // localStorage can fail in privacy modes; non-fatal.
           return;
         }
 

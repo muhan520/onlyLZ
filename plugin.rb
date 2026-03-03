@@ -15,7 +15,24 @@ require_relative "lib/only_lz"
 after_initialize do
   require_relative "lib/only_lz/topic_filter"
 
-  register_topic_view_posts_filter(::OnlyLz::FILTER_NAME) do |posts, topic_view|
-    ::OnlyLz::TopicFilter.apply(posts: posts, topic_view: topic_view)
+  filter_proc = proc do |posts, topic_view = nil|
+    effective_topic_view = topic_view
+    effective_topic_view ||= self if defined?(::TopicView) && self.is_a?(::TopicView)
+
+    ::OnlyLz::TopicFilter.apply(posts: posts, topic_view: effective_topic_view)
+  end
+
+  if respond_to?(:register_topic_view_posts_filter)
+    ::OnlyLz::FILTER_ALIASES.each do |filter_name|
+      register_topic_view_posts_filter(filter_name, &filter_proc)
+    end
+  elsif defined?(::TopicView) && ::TopicView.respond_to?(:add_custom_filter)
+    ::OnlyLz::FILTER_ALIASES.each do |filter_name|
+      ::TopicView.add_custom_filter(filter_name, &filter_proc)
+    end
+  else
+    Rails.logger.warn(
+      "[#{::OnlyLz::PLUGIN_NAME}] no topic filter registration API found; only_lz filter is disabled"
+    )
   end
 end

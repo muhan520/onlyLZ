@@ -5,16 +5,19 @@ import I18n from "I18n";
 
 const FILTER_NAME = "only_lz";
 const STORAGE_PREFIX = "only_lz.topic.v1.";
-const TOPIC_PATH_REGEX = /^\/t\/[^/]+\/(\d+)(?:\/|$)/;
+const TOPIC_PATH_REGEXES = [/^\/t\/[^/]+\/(\d+)(?:\/|$)/, /^\/t\/(\d+)(?:\/|$)/];
 
 function topicIdFromPath(pathname) {
-  const match = pathname.match(TOPIC_PATH_REGEX);
-  if (!match) {
-    return null;
+  for (const regex of TOPIC_PATH_REGEXES) {
+    const match = pathname.match(regex);
+    if (match) {
+      const topicId = Number.parseInt(match[1], 10);
+      if (Number.isFinite(topicId)) {
+        return topicId;
+      }
+    }
   }
-
-  const topicId = Number.parseInt(match[1], 10);
-  return Number.isFinite(topicId) ? topicId : null;
+  return null;
 }
 
 export default class OnlyLzToggle extends Component {
@@ -25,8 +28,10 @@ export default class OnlyLzToggle extends Component {
   }
 
   get topicId() {
-    const model = this.args.outletArgs?.model;
-    const maybeId = model?.id ?? model?.topic?.id;
+    const outletArgs = this.args.outletArgs || {};
+    const model = outletArgs.model || outletArgs.topic;
+    const maybeId =
+      model && (model.id || (model.topic && model.topic.id));
     const fromModel = Number.parseInt(maybeId, 10);
     if (Number.isFinite(fromModel)) {
       return fromModel;
@@ -49,13 +54,13 @@ export default class OnlyLzToggle extends Component {
   }
 
   get buttonClass() {
-    return this.enabled
-      ? "btn-primary only-lz-toggle-button is-active"
-      : "only-lz-toggle-button";
-  }
-
-  get buttonIcon() {
-    return this.enabled ? "filter" : "user";
+    const classes = ["btn", "only-lz-toggle-button"];
+    if (this.enabled) {
+      classes.push("btn-primary", "is-active");
+    } else {
+      classes.push("btn-default");
+    }
+    return classes.join(" ");
   }
 
   get buttonLabel() {
@@ -89,7 +94,7 @@ export default class OnlyLzToggle extends Component {
         `${STORAGE_PREFIX}${this.topicId}`,
         enabled ? "1" : "0"
       );
-    } catch {
+    } catch (error) {
       // localStorage can fail in privacy modes; non-fatal.
     }
   }
