@@ -1,0 +1,13 @@
+.only-lz-toggle-wrap {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 0.75rem;
+}
+
+.only-lz-toggle-button {
+  min-width: 8.5rem;
+}
+
+.only-lz-toggle-button.is-active {
+  font-weight: 600;
+}

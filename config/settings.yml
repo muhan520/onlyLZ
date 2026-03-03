@@ -1,0 +1,4 @@
+plugins:
+  only_lz_enabled:
+    default: true
+    client: true

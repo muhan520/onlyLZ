@@ -1,0 +1,5 @@
+en:
+  js:
+    only_lz:
+      only_op: "Only OP"
+      show_all: "Show All"
