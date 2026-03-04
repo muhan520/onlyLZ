@@ -15,11 +15,21 @@ require_relative "lib/only_lz"
 after_initialize do
   require_relative "lib/only_lz/topic_filter"
 
-  filter_proc = proc do |posts, topic_view = nil|
+  filter_proc = proc do |posts, topic_view = nil, *extra_args|
     effective_topic_view = topic_view
     effective_topic_view ||= self if defined?(::TopicView) && self.is_a?(::TopicView)
 
     ::OnlyLz::TopicFilter.apply(posts: posts, topic_view: effective_topic_view)
+  rescue StandardError => e
+    ::OnlyLz.log(
+      :warn,
+      "topic view filter callback failed",
+      topic_id: effective_topic_view&.topic&.id,
+      error_class: e.class.name,
+      error_message: e.message,
+      extra_args_count: extra_args.length
+    )
+    posts
   end
 
   if respond_to?(:register_topic_view_posts_filter)
