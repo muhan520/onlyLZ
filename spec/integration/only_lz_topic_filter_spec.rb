@@ -94,6 +94,42 @@ RSpec.describe "OnlyLz topic filter" do
     expect(filtered_ids).not_to include(other_reply.id)
   end
 
+  it "can pluck ids with sort order after real-owner filtering" do
+    topic = Fabricate(:topic, user: topic_owner)
+    owner_reply = Fabricate(:post, topic: topic, user: topic_owner, raw: "owner reply")
+    anonymous_owner_reply = Fabricate(:post, topic: topic, user: topic_owner, raw: "anon owner reply")
+    Fabricate(:post, topic: topic, user: other_user, raw: "other reply")
+    set_post_field(anonymous_owner_reply, "anon_identity_id", "identity-303")
+
+    posts = Post.where(topic_id: topic.id).order(sort_order: :asc)
+    topic_view = double("topic_view", topic: topic)
+
+    filtered = ::OnlyLz::TopicFilter.apply(posts: posts, topic_view: topic_view)
+
+    expect { filtered.limit(20).pluck(:id) }.not_to raise_error
+    expect(filtered.pluck(:id)).to contain_exactly(topic.first_post.id, owner_reply.id)
+  end
+
+  it "can pluck ids with sort order after anonymous filtering" do
+    topic = Fabricate(:topic, user: topic_owner)
+    first_post = topic.first_post
+    set_post_field(first_post, "anon_identity_id", "identity-404")
+
+    same_identity_reply = Fabricate(:post, topic: topic, user: topic_owner, raw: "same identity reply")
+    set_post_field(same_identity_reply, "anon_identity_id", "identity-404")
+
+    other_identity_reply = Fabricate(:post, topic: topic, user: other_user, raw: "other identity reply")
+    set_post_field(other_identity_reply, "anon_identity_id", "identity-999")
+
+    posts = Post.where(topic_id: topic.id).order(sort_order: :asc)
+    topic_view = double("topic_view", topic: topic)
+
+    filtered = ::OnlyLz::TopicFilter.apply(posts: posts, topic_view: topic_view)
+
+    expect { filtered.limit(20).pluck(:id) }.not_to raise_error
+    expect(filtered.pluck(:id)).to contain_exactly(first_post.id, same_identity_reply.id)
+  end
+
   it "does not write plugin logs when only_lz_log_enabled is disabled" do
     SiteSetting.only_lz_log_enabled = false
 

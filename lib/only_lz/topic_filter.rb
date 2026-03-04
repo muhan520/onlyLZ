@@ -41,33 +41,19 @@ module ::OnlyLz
     end
 
     def self.anonymous_only(posts:, anon_identity_id:)
-      posts
-        .joins(
-          sanitize_sql_array(
-            "INNER JOIN post_custom_fields only_lz_anon_cf " \
-              "ON only_lz_anon_cf.post_id = posts.id " \
-              "AND only_lz_anon_cf.name = ? " \
-              "AND only_lz_anon_cf.value = ?",
-            ::OnlyLz::Fields::ANON_IDENTITY_ID,
-            anon_identity_id
-          )
-        )
-        .distinct
+      matching_post_ids =
+        PostCustomField
+          .where(name: ::OnlyLz::Fields::ANON_IDENTITY_ID, value: anon_identity_id)
+          .select(:post_id)
+
+      posts.where(id: matching_post_ids)
     end
 
     def self.real_owner_only(posts:, topic_owner_id:)
-      posts
-        .where(user_id: topic_owner_id)
-        .joins(
-          sanitize_sql_array(
-            "LEFT JOIN post_custom_fields only_lz_anon_cf " \
-              "ON only_lz_anon_cf.post_id = posts.id " \
-              "AND only_lz_anon_cf.name = ?",
-            ::OnlyLz::Fields::ANON_IDENTITY_ID
-          )
-        )
-        .where("only_lz_anon_cf.post_id IS NULL")
-        .distinct
+      anonymous_post_ids =
+        PostCustomField.where(name: ::OnlyLz::Fields::ANON_IDENTITY_ID).select(:post_id)
+
+      posts.where(user_id: topic_owner_id).where.not(id: anonymous_post_ids)
     end
 
     def self.anon_identity_id_for(post)
@@ -92,11 +78,6 @@ module ::OnlyLz
         marker_keys.any? { |field| custom_fields[field].present? } ||
         PostCustomField.where(post_id: post.id, name: marker_keys + [identity_key]).exists?
     end
-
-    def self.sanitize_sql_array(template, *params)
-      ActiveRecord::Base.send(:sanitize_sql_array, [template, *params])
-    end
-    private_class_method :sanitize_sql_array
 
     def self.resolve_first_post(topic_view:, topic:)
       first_post = topic_view.first_post if topic_view.respond_to?(:first_post)
