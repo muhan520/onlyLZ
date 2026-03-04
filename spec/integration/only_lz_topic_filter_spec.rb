@@ -80,6 +80,20 @@ RSpec.describe "OnlyLz topic filter" do
     expect(filtered_post_ids(topic)).to contain_exactly(first_post.id, other_reply.id)
   end
 
+  it "falls back to topic.first_post when topic_view does not expose first_post" do
+    topic = Fabricate(:topic, user: topic_owner)
+    owner_reply = Fabricate(:post, topic: topic, user: topic_owner, raw: "owner reply")
+    other_reply = Fabricate(:post, topic: topic, user: other_user, raw: "other reply")
+
+    posts = Post.where(topic_id: topic.id)
+    topic_view = double("topic_view_without_first_post", topic: topic)
+
+    filtered_ids = ::OnlyLz::TopicFilter.apply(posts: posts, topic_view: topic_view).pluck(:id)
+
+    expect(filtered_ids).to contain_exactly(topic.first_post.id, owner_reply.id)
+    expect(filtered_ids).not_to include(other_reply.id)
+  end
+
   it "does not write plugin logs when only_lz_log_enabled is disabled" do
     SiteSetting.only_lz_log_enabled = false
 

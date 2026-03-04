@@ -9,7 +9,7 @@ module ::OnlyLz
       topic = topic_view.topic
       return posts if topic.blank? || topic.user_id.blank?
 
-      first_post = topic_view.first_post || topic.first_post
+      first_post = resolve_first_post(topic_view: topic_view, topic: topic)
       return posts if first_post.blank?
 
       first_post_anon_identity_id = anon_identity_id_for(first_post)
@@ -97,6 +97,14 @@ module ::OnlyLz
       ActiveRecord::Base.send(:sanitize_sql_array, [template, *params])
     end
     private_class_method :sanitize_sql_array
+
+    def self.resolve_first_post(topic_view:, topic:)
+      first_post = topic_view.first_post if topic_view.respond_to?(:first_post)
+      return first_post if first_post.present?
+
+      topic.first_post
+    end
+    private_class_method :resolve_first_post
 
     private_class_method :anon_identity_id_for, :first_post_anonymous_marked?,
                          :anonymous_only, :real_owner_only
