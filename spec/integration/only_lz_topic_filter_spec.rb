@@ -9,6 +9,7 @@ RSpec.describe "OnlyLz topic filter" do
 
   before do
     SiteSetting.only_lz_enabled = true
+    SiteSetting.only_lz_log_enabled = false
   end
 
   def filtered_post_ids(topic, scope_user = viewer)
@@ -19,6 +20,12 @@ RSpec.describe "OnlyLz topic filter" do
     post.custom_fields[name] = value
     post.save_custom_fields
     post.reload
+  end
+
+  def apply_filter(topic)
+    posts = Post.where(topic_id: topic.id)
+    topic_view = double("topic_view", topic: topic, first_post: topic.first_post)
+    ::OnlyLz::TopicFilter.apply(posts: posts, topic_view: topic_view)
   end
 
   it "keeps only topic-owner real-name posts when first post is real-name" do
@@ -71,5 +78,33 @@ RSpec.describe "OnlyLz topic filter" do
     other_reply = Fabricate(:post, topic: topic, user: other_user, raw: "other reply")
 
     expect(filtered_post_ids(topic)).to contain_exactly(first_post.id, other_reply.id)
+  end
+
+  it "does not write plugin logs when only_lz_log_enabled is disabled" do
+    SiteSetting.only_lz_log_enabled = false
+
+    topic = Fabricate(:topic, user: topic_owner)
+    set_post_field(topic.first_post, "anon_display_name_snapshot", "alias#abcd123")
+
+    logger = spy("logger")
+    allow(Rails).to receive(:logger).and_return(logger)
+
+    apply_filter(topic)
+
+    expect(logger).not_to have_received(:warn).with(include("[#{::OnlyLz::PLUGIN_NAME}]"))
+  end
+
+  it "writes plugin logs when only_lz_log_enabled is enabled" do
+    SiteSetting.only_lz_log_enabled = true
+
+    topic = Fabricate(:topic, user: topic_owner)
+    set_post_field(topic.first_post, "anon_display_name_snapshot", "alias#abcd123")
+
+    logger = spy("logger")
+    allow(Rails).to receive(:logger).and_return(logger)
+
+    apply_filter(topic)
+
+    expect(logger).to have_received(:warn).with(include("[#{::OnlyLz::PLUGIN_NAME}]")).at_least(:once)
   end
 end

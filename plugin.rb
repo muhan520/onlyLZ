@@ -31,8 +31,9 @@ after_initialize do
       ::TopicView.add_custom_filter(filter_name, &filter_proc)
     end
   else
-    Rails.logger.warn(
-      "[#{::OnlyLz::PLUGIN_NAME}] no topic filter registration API found; only_lz filter is disabled"
+    ::OnlyLz.log(
+      :warn,
+      "no topic filter registration API found; only_lz filter is disabled"
     )
   end
 end

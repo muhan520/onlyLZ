@@ -19,18 +19,23 @@ module ::OnlyLz
       end
 
       if first_post_anonymous_marked?(first_post)
-        Rails.logger.warn(
-          "[#{::OnlyLz::PLUGIN_NAME}] anonymous first post missing #{::OnlyLz::Fields::ANON_IDENTITY_ID}, " \
-            "topic_id=#{topic.id}, post_id=#{first_post.id}; skip only_lz filter"
+        ::OnlyLz.log(
+          :warn,
+          "anonymous first post missing #{::OnlyLz::Fields::ANON_IDENTITY_ID}; skip only_lz filter",
+          topic_id: topic.id,
+          post_id: first_post.id
         )
         return posts
       end
 
       real_owner_only(posts: posts, topic_owner_id: topic.user_id)
     rescue StandardError => e
-      Rails.logger.warn(
-        "[#{::OnlyLz::PLUGIN_NAME}] topic filter failed for topic_id=#{topic_view&.topic&.id}: " \
-          "#{e.class}: #{e.message}"
+      ::OnlyLz.log(
+        :warn,
+        "topic filter failed",
+        topic_id: topic_view&.topic&.id,
+        error_class: e.class.name,
+        error_message: e.message
       )
       posts
     end

@@ -1,3 +1,4 @@
 zh_CN:
   site_settings:
     only_lz_enabled: "启用话题页只看楼主过滤"
+    only_lz_log_enabled: "启用 discourse-only-lz 插件日志"

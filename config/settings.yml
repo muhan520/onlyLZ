@@ -2,3 +2,6 @@ plugins:
   only_lz_enabled:
     default: true
     client: true
+  only_lz_log_enabled:
+    default: false
+    client: false

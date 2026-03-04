@@ -1,3 +1,4 @@
 en:
   site_settings:
     only_lz_enabled: "Enable topic-level only OP filter"
+    only_lz_log_enabled: "Enable discourse-only-lz plugin logs"

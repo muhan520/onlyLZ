@@ -18,11 +18,13 @@ Discourse「只看楼主」独立插件，兼容话题级匿名身份插件（`d
 
 - 不会把楼主匿名帖与楼主实名帖在同一过滤结果里强关联。
 - staff 与普通用户在 `only_lz` 过滤下行为一致。
-- 若出现异常数据（首帖存在匿名标记但缺少 `anon_identity_id`），会记录 warn 并跳过过滤，避免误筛空。
+- 若出现异常数据（首帖存在匿名标记但缺少 `anon_identity_id`），会跳过过滤，避免误筛空。
+- 相关日志受 `only_lz_log_enabled` 控制，默认不输出。
 
 ## 站点设置
 
 - `only_lz_enabled`（默认 `true`，客户端可读）
+- `only_lz_log_enabled`（默认 `false`，仅服务端；控制插件全部日志输出）
 
 ## 目录结构
 
@@ -59,6 +61,12 @@ Discourse「只看楼主」独立插件，兼容话题级匿名身份插件（`d
 - 在话题 URL 增加参数：`?filter=only_lz`。
 - 通过话题页按钮切换过滤；按钮状态会按话题记忆。
 
+## 运维排查（日志开关）
+
+1. 默认保持 `only_lz_log_enabled = false`，插件不会输出日志。
+2. 需要排查时，在后台临时打开 `only_lz_log_enabled` 并复现问题。
+3. 排查完成后直接在后台关闭该开关，日志会立即停止，无需再次 rebuild。
+
 ## 测试
 
 插件包含后端冒烟测试：
@@ -75,4 +83,3 @@ bundle exec rspec plugins/discourse-only-lz/spec/integration/only_lz_topic_filte
 
 - 读取 `post_custom_fields` 中的 `anon_identity_id` 作为匿名身份主键。
 - 不依赖 `anonymous_display_name` 等展示字段字符串。
-
